@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { upload } from "@/actions/upload";
+import { embed } from "@/actions/embed";
 
-export default function UploadFormWithAction() {
+export default function UploadFile() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [fileName, setFileName] = useState("No file selected");
@@ -27,7 +28,23 @@ export default function UploadFormWithAction() {
     const result = await upload(formData);
 
     if (result.success) {
-      setMessage(`✓ Uploaded: ${result.title}`);
+      setMessage(`Embedding ${result.title}...`);
+
+      const embeddingFormData = new FormData();
+      const filepath = "./uploads/" + fileName;
+      embeddingFormData.append("filepath", filepath);
+      embeddingFormData.append("file_id", result.file_id!);
+      embeddingFormData.append("type", result.type!);
+
+      const embeddingResult = await embed(embeddingFormData);
+
+      if (embeddingResult.success) {
+        setMessage(`Uploaded ${result.title} successfully`);
+      } else {
+        console.log(embeddingResult.error);
+        setMessage(`✗ Error: ${embeddingResult.error}`);
+      }
+
       form.reset();
       setFileName("No file selected");
     } else {

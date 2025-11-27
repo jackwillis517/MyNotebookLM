@@ -1,9 +1,13 @@
+"use server";
+
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { CSVLoader } from "@langchain/community/document_loaders/fs/csv";
+import { db } from "@/db";
+import { embeddings } from "@/db/schema";
 
 // Helper to choose appropriate loader based on file type
 function getLoader(filepath: string, type: string) {
@@ -23,7 +27,12 @@ function getLoader(filepath: string, type: string) {
   throw new Error(`Unsupported file type: ${type}`);
 }
 
-export async function ingest(filepath: string, type: string) {
+export async function embed(formData: FormData) {
+  console.log("Embedding started");
+  const filepath = formData.get("filepath") as string;
+  const file_id = formData.get("file_id") as string;
+  const type = formData.get("type") as string;
+
   const loader = getLoader(filepath, type);
   const docs = await loader.load();
 
@@ -37,4 +46,23 @@ export async function ingest(filepath: string, type: string) {
 
   const texts = chunks.map((chunk) => chunk.pageContent);
   const vectors = await embeddingModel.embedDocuments(texts);
+
+  // Insert embeding vectors
+  const embeddingsData = chunks.map((chunk, idx) => ({
+    file_id,
+    embedding: vectors[idx],
+    metadata: chunk.metadata,
+  }));
+
+  try {
+    const [doc] = await db
+      .insert(embeddings)
+      .values(embeddingsData)
+      .returning();
+
+    return { success: true, createdAt: doc.createdAt };
+  } catch (error) {
+    console.log("Embed error:", error);
+    return { success: false, error: "Embedding failed" };
+  }
 }

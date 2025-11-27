@@ -1,4 +1,5 @@
 "use server";
+
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { db } from "@/db";
@@ -18,8 +19,8 @@ export async function upload(formData: FormData) {
     await mkdir(uploadsDir, { recursive: true });
 
     // Save file
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${file.name}`;
+    // const timestamp = Date.now();
+    const filename = `${file.name}`;
     const filepath = join(uploadsDir, filename);
 
     const bytes = await file.arrayBuffer();
@@ -40,6 +41,9 @@ export async function upload(formData: FormData) {
     return {
       success: true,
       title: doc.title,
+      file_id: doc.id,
+      type: doc.type,
+      size: doc.size,
       createdAt: doc.createdAt,
     };
   } catch (error) {
