@@ -42,6 +42,7 @@ export const embeddings = pgTable("embeddings", {
   file_id: uuid("file_id").references(() => files.id, {
     onDelete: "cascade",
   }),
+  content: text("content").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

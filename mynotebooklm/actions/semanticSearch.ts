@@ -20,22 +20,19 @@ export async function semanticSearch(
 
     const queryVector = await embeddingsModel.embedQuery(query);
 
+    const vectorString = `[${queryVector.join(',')}]`;
+
     const results = await db
       .select({
         file_id: embeddings.file_id,
+        content: embeddings.content,
         metadata: embeddings.metadata,
-        similarity: sql<number>`1 - (${embeddings.embedding} <=> ${sql`ARRAY[${sql.join(
-          queryVector.map((v) => sql`${v}`),
-          sql`, `,
-        )}]`}::vector)`,
+        similarity: sql<number>`1 - (${embeddings.embedding} <=> ${vectorString}::vector)`,
       })
       .from(embeddings)
       .innerJoin(files, eq(embeddings.file_id, files.id))
       .orderBy(
-        sql`${embeddings.embedding} <=> ARRAY[${sql.join(
-          queryVector.map((v) => sql`${v}`),
-          sql`, `,
-        )}]::vector`,
+        sql`${embeddings.embedding} <=> ${vectorString}::vector`,
       )
       .limit(topK);
 
@@ -43,6 +40,7 @@ export async function semanticSearch(
       .filter((r) => r.similarity >= minSimilarity)
       .map((r) => ({
         file_id: r.file_id!,
+        content: r.content,
         metadata: r.metadata,
         similarity: r.similarity,
       }));

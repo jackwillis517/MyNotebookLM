@@ -52,6 +52,7 @@ export async function embed(formData: FormData) {
     file_id,
     embedding: vectors[idx],
     metadata: chunk.metadata,
+    content: chunk.pageContent,
   }));
 
   try {
