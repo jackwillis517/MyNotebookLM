@@ -1,6 +1,14 @@
 import { createAgent } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import {
+  semanticSearchTool,
+  summaryTool,
+  queryRewriteTool,
+  saveMemoryTool,
+  getMemoryTool,
+} from "./tools";
+import { AGENT_SYSTEM_PROMPT } from "./prompts";
 
 export default function getAgent() {
   const checkpointer = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
@@ -16,9 +24,15 @@ export default function getAgent() {
 
   const agent = createAgent({
     model: model,
-    tools: [],
+    tools: [
+      saveMemoryTool,
+      getMemoryTool,
+      queryRewriteTool,
+      summaryTool,
+      semanticSearchTool,
+    ],
     checkpointer: checkpointer,
-    systemPrompt: "You are a helpful assistant.",
+    systemPrompt: AGENT_SYSTEM_PROMPT,
   });
 
   return agent;
