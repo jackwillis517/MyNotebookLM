@@ -12,7 +12,7 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [customUpdates, setCustomUpdates] = useState<string[]>([]);
-  const [threadId] = useState(() => `thread_${Date.now()}`);
+  const [threadId] = useState(() => `thread_1`);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

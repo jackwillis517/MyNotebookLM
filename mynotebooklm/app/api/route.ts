@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import getAgent from "./agent";
+import getAgent from "./agents/agent";
 
 export async function POST(request: NextRequest) {
   try {
