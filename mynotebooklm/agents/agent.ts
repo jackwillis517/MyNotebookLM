@@ -10,8 +10,18 @@ import {
 } from "./tools";
 import { AGENT_SYSTEM_PROMPT } from "./prompts";
 
-export default function getAgent() {
-  const checkpointer = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
+let checkpointerInstance: PostgresSaver | null = null;
+
+async function getCheckpointer() {
+  if (!checkpointerInstance) {
+    checkpointerInstance = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
+    await checkpointerInstance.setup();
+  }
+  return checkpointerInstance;
+}
+
+export default async function getAgent() {
+  const checkpointer = await getCheckpointer();
 
   const model = new ChatOpenAI({
     configuration: {

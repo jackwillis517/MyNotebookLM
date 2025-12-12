@@ -1,6 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 uploads
+qdrant_storage
+memory.db
 
 # dependencies
 /node_modules

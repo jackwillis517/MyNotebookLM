@@ -9,6 +9,7 @@ import {
 
 export const chats = pgTable("chats", {
   thread_id: uuid("thread_id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

@@ -1,6 +1,6 @@
 import { Memory } from "mem0ai/oss";
 
-export const memory = new Memory({
+const config = {
   version: "v1.1",
   embedder: {
     provider: "openai",
@@ -10,23 +10,22 @@ export const memory = new Memory({
     },
   },
   vectorStore: {
-    provider: "pgvector",
+    provider: "qdrant",
     config: {
       collectionName: "memories",
       embeddingModelDims: 1536,
-      user: "neondb_owner",
-      password: process.env.NEON_PASSWORD || "",
-      host: process.env.NEON_HOST || "",
-      port: 5432,
-      dbname: "neondb",
+      host: "localhost",
+      port: 6333,
     },
   },
   llm: {
-    provider: "lmstudio",
+    provider: "openai",
     config: {
-      model: "qwen/qwen3-vl-4b",
-      baseURL: "http://localhost:1234/v1",
+      apiKey: process.env.OPENAI_API_KEY || "",
+      model: "gpt-4o-mini",
     },
   },
   historyDbPath: "memory.db",
-});
+};
+
+export const memory = new Memory(config);

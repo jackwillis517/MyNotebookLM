@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import getAgent from "./agents/agent";
+import getAgent from "../../agents/agent";
 
 export async function POST(request: NextRequest) {
   try {
     const { messages, threadId } = await request.json();
 
-    const agent = getAgent();
+    const agent = await getAgent();
 
     const encoder = new TextEncoder();
 
