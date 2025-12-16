@@ -1,8 +1,13 @@
+"use client";
+
 import { Headphones, FileQuestion, CreditCard, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useChatContext } from "@/contexts/ChatProvider";
 
 const RightPanel = () => {
+  const { selectedThreadId } = useChatContext();
+
   const generationTools = [
     {
       id: 1,

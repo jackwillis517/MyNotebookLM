@@ -1,53 +1,64 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { chats } from "@/db/schema";
 import { cn } from "@/lib/utils";
-import { getAllChats } from "@/actions/db";
-import { Message } from "@/lib/types";
+import {
+  readAllChats,
+  updateChat,
+  readAllMessages,
+  createMessage,
+} from "@/actions/db";
+import { Chat, Message } from "@/lib/types";
 import { Send, Mic, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useChatContext } from "@/contexts/ChatProvider";
 
 export default function CenterPanel() {
-  const [chatList, setChatList] = useState<(typeof chats.$inferSelect)[]>([]);
-  const [selectedChat, setSelectedChat] = useState<typeof chats.$inferSelect>();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { setSelectedThreadId, selectedThreadId } = useChatContext();
+  const [chatList, setChatList] = useState<Chat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<Chat>();
+  const [messageList, setMessageList] = useState<Message[]>([]);
+  const [customUpdates, setCustomUpdates] = useState<string[]>([]);
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [threadsOpen, setThreadsOpen] = useState<boolean>(false);
-  const [customUpdates, setCustomUpdates] = useState<string[]>([]);
 
   // Get all the chats
   useEffect(() => {
     const fetchChats = async () => {
-      const chats = await getAllChats();
+      const chats = await readAllChats();
       setChatList(chats);
 
       if (chats.length > 0) {
+        // Set the selected chat to the most recently edited chat
         setSelectedChat(chats[0]);
+        // Set the global thread ID for other components
+        setSelectedThreadId(chats[0].threadId);
+
+        // Fetch messages for the selected chat
+        const messages = await readAllMessages(chats[0].threadId);
+        setMessageList(messages);
       }
     };
     fetchChats();
-  }, []);
+  }, [setSelectedThreadId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      threadId: selectedChat!.thread_id,
-      role: "user",
-      content: input,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    // Save user message to db
-    // Update the chat with this threadId's updated_at field
-
+    const userMessage: Message = { role: "user", content: input };
+    const assistantMessage: Message = { role: "assistant", content: "" };
+    setMessageList((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
     setCustomUpdates([]);
+
+    // Create user message in db
+    await createMessage(selectedThreadId!, userMessage);
+    // Update the chat with this threadId's updated_at field
+    await updateChat(selectedChat!);
 
     try {
       const response = await fetch("/api", {
@@ -56,8 +67,8 @@ export default function CenterPanel() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage],
-          threadId: selectedChat!.thread_id,
+          messages: [...messageList, userMessage],
+          threadId: selectedThreadId,
         }),
       });
 
@@ -69,11 +80,8 @@ export default function CenterPanel() {
       const decoder = new TextDecoder();
       let assistantContent = "";
 
-      // Add empty assistant message
-      setMessages((prev) => [
-        ...prev,
-        { threadId: selectedChat!.thread_id, role: "assistant", content: "" },
-      ]);
+      // Add empty assistant message to state
+      setMessageList((prev) => [...prev, assistantMessage]);
 
       while (true) {
         const { done, value } = await reader!.read();
@@ -90,9 +98,10 @@ export default function CenterPanel() {
               if (event.type === "token") {
                 // Accumulate tokens
                 assistantContent += event.content;
+                assistantMessage.content = assistantContent;
 
                 // Update the last message
-                setMessages((prev) => {
+                setMessageList((prev) => {
                   const newMessages = [...prev];
                   newMessages[newMessages.length - 1].content =
                     assistantContent;
@@ -117,28 +126,34 @@ export default function CenterPanel() {
       }
     } catch (error) {
       console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          threadId: selectedChat!.thread_id,
-          role: "assistant",
-          content: "Sorry, there was an error processing your request.",
-        },
-      ]);
-      // Save assistant messages to db (messages[-1])
-      // Update the chat with this threadId's updated_at field
+      const errorMessage = "Something went wrong please try again.";
+
+      setMessageList((prev) => {
+        const newMessages = [...prev];
+        newMessages[newMessages.length - 1].content = errorMessage;
+        assistantMessage.content = errorMessage;
+        return newMessages;
+      });
     } finally {
-      // Save assistant messages to db (messages[-1])
-      // Update the chat with this threadId's updated_at field
+      // Save assistant message to database
+      await createMessage(selectedThreadId!, assistantMessage);
+      // Update the selected chat's updatedAt field
+      await updateChat(selectedChat!);
+
       setIsLoading(false);
       setCustomUpdates([]);
     }
   };
 
-  const handleChatSelect = (chat: typeof chats.$inferSelect) => {
+  const handleChatSelect = async (chat: Chat) => {
+    // Set the selected chat to this one
     setSelectedChat(chat);
+    // Set the global thread ID for other components
+    setSelectedThreadId(chat.threadId);
 
-    // Get messages for the selected chat
+    // Read messages for the selected chat
+    const messages = await readAllMessages(chat.threadId);
+    setMessageList(messages);
   };
 
   return (
@@ -155,9 +170,8 @@ export default function CenterPanel() {
           <div className="space-y-2">
             {chatList.map((chat) => (
               <Card
-                key={chat.thread_id}
+                key={chat.threadId}
                 onClick={() => handleChatSelect(chat)}
-                // When clicked, set selectedThreadId
                 className="p-3 bg-secondary/30 border-border hover:bg-secondary/50 transition-colors cursor-pointer"
               >
                 <p className="text-sm text-foreground truncate">{chat.title}</p>
@@ -188,9 +202,9 @@ export default function CenterPanel() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map((message) => (
+          {messageList.map((message, index) => (
             <div
-              key={message.id}
+              key={`${new Date().getTime()}-${index}`}
               className={cn(
                 "flex",
                 message.role === "user" ? "justify-end" : "justify-start",
@@ -208,6 +222,11 @@ export default function CenterPanel() {
               </div>
             </div>
           ))}
+          {/*{isLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="animate-spin" />
+            </div>
+          ) : null}*/}
         </div>
 
         {/* Input Area */}

@@ -5,6 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, threadId } = await request.json();
 
+    console.log("Incoming messages:", JSON.stringify(messages, null, 2));
+
     const agent = await getAgent();
 
     const encoder = new TextEncoder();
@@ -13,6 +15,8 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          console.log("Starting agent stream with threadId:", threadId);
+
           // Use multiple stream modes to get everything
           for await (const [streamMode, chunk] of await agent.stream(
             { messages },
@@ -43,12 +47,17 @@ export async function POST(request: NextRequest) {
               // Agent step updates (tool calls, etc.)
               const [step, content] = Object.entries(chunk as any)[0];
 
+              console.log("Agent update - step:", step);
+              console.log("Update content:", JSON.stringify(content, null, 2));
+
               if (step === "tools" && content.messages) {
                 // Tool execution result
+                const toolMessage = content.messages[0];
+                console.log("Tool executed - message:", toolMessage);
                 event = {
                   type: "tool_result",
-                  content: content.messages[0]?.kwargs?.content,
-                  toolName: content.messages[0]?.kwargs?.name,
+                  content: toolMessage?.content || toolMessage?.kwargs?.content,
+                  toolName: toolMessage?.name || toolMessage?.kwargs?.name || "unknown",
                 };
               }
             } else if (streamMode === "custom") {

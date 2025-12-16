@@ -14,7 +14,9 @@ let checkpointerInstance: PostgresSaver | null = null;
 
 async function getCheckpointer() {
   if (!checkpointerInstance) {
-    checkpointerInstance = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
+    checkpointerInstance = PostgresSaver.fromConnString(
+      process.env.DATABASE_URL!,
+    );
     await checkpointerInstance.setup();
   }
   return checkpointerInstance;
@@ -32,15 +34,19 @@ export default async function getAgent() {
     streaming: true,
   });
 
+  const tools = [
+    saveMemoryTool,
+    getMemoryTool,
+    queryRewriteTool,
+    summaryTool,
+    semanticSearchTool,
+  ];
+
+  console.log("Creating agent with", tools.length, "tools");
+
   const agent = createAgent({
     model: model,
-    tools: [
-      saveMemoryTool,
-      getMemoryTool,
-      queryRewriteTool,
-      summaryTool,
-      semanticSearchTool,
-    ],
+    tools: tools,
     checkpointer: checkpointer,
     systemPrompt: AGENT_SYSTEM_PROMPT,
   });

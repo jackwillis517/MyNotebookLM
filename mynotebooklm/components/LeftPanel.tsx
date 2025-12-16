@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { upload } from "@/actions/upload";
 import { embed } from "@/actions/embed";
-import { getAllFiles } from "@/actions/db";
+import { readAllFiles } from "@/actions/db";
 import { files } from "@/db/schema";
 import { formatBytes } from "@/lib/utils";
 import { FileText, Upload, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useChatContext } from "@/contexts/ChatProvider";
 
 export default function LeftPanel() {
+  const { selectedThreadId } = useChatContext();
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [fileList, setFileList] = useState<(typeof files.$inferSelect)[]>([]);
@@ -18,11 +20,12 @@ export default function LeftPanel() {
 
   useEffect(() => {
     const fetchFiles = async () => {
-      const files = await getAllFiles("09e1ea79-36f0-4671-abbc-9913db9722ae");
+      if (!selectedThreadId) return;
+      const files = await readAllFiles(selectedThreadId);
       setFileList(files);
     };
     fetchFiles();
-  }, [refresh]);
+  }, [refresh, selectedThreadId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,10 +37,12 @@ export default function LeftPanel() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!selectedThreadId) return;
+
     const form = e.currentTarget;
     const formData = new FormData(form);
     const uploadedFile = formData.get("file") as File;
-    formData.append("thread_id", "09e1ea79-36f0-4671-abbc-9913db9722ae");
+    formData.append("thread_id", selectedThreadId);
 
     setUploading(true);
     setMessage("Uploading...");

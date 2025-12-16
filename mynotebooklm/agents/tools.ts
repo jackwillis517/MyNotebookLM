@@ -27,7 +27,7 @@ export const saveMemoryTool = tool(
     await memory.add(memories, { userId: "user123" });
   },
   {
-    name: "memory",
+    name: "save_memory",
     description: SAVE_MEMORY_TOOL_DESCRIPTION,
     schema: z.object({
       memories: z.string().describe("The memory to save"),
@@ -42,7 +42,7 @@ export const getMemoryTool = tool(
     return results;
   },
   {
-    name: "memory",
+    name: "get_memory",
     description: GET_MEMORY_TOOL_DESCRIPTION,
     schema: z.object({
       query: z.string().describe("The query to search memory with"),
@@ -60,7 +60,7 @@ export const queryRewriteTool = tool(
     return result.toString();
   },
   {
-    name: "queryRewrite",
+    name: "query_rewrite",
     description: QUERY_REWRITE_TOOL_DESCRIPTION,
     schema: z.object({
       query: z.string().describe("The query to be rewritten"),
@@ -87,20 +87,23 @@ export const summaryTool = tool(
 );
 
 export const semanticSearchTool = tool(
-  async ({ query, k, minSimilarity }) => {
-    console.log("Calling semanticSearchTool...");
-    const result = await semanticSearch(query, k, minSimilarity);
-    return result.toString();
+  async ({ query, k = 5, min_similarity = 0.7 }) => {
+    console.log("Calling semanticSearchTool with:", { query, k, min_similarity });
+    const result = await semanticSearch(query, k, min_similarity);
+    console.log("Search results:", result);
+    return JSON.stringify(result);
   },
   {
-    name: "semanticSearch",
+    name: "semantic_search",
     description: SEMANTIC_SEARCH_TOOL_DESCRIPTION,
     schema: z.object({
-      query: z.string().describe("The query to search for"),
-      k: z.number().describe("The number of results to return"),
-      minSimilarity: z
+      query: z.string().describe("The search query to find relevant documents"),
+      k: z.number().optional().default(5).describe("Number of results to return (default: 5)"),
+      min_similarity: z
         .number()
-        .describe("The minimum similarity score to return"),
+        .optional()
+        .default(0.7)
+        .describe("Minimum similarity score threshold (default: 0.7)"),
     }),
   },
 );
