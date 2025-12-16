@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { upload } from "@/actions/upload";
 import { embed } from "@/actions/embed";
-import { semanticSearch } from "@/actions/semanticSearch";
+import { semanticSearch } from "@/actions/search";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

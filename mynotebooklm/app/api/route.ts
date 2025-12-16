@@ -30,6 +30,12 @@ export async function POST(request: NextRequest) {
             if (streamMode === "messages") {
               // Token streaming
               const [token, metadata] = chunk as any;
+
+              // Skip tool messages - only stream agent messages
+              if (metadata.langgraph_node === "tools") {
+                continue;
+              }
+
               if (token.contentBlocks && token.contentBlocks.length > 0) {
                 const content = token.contentBlocks
                   .map((block: any) => block.text || "")
@@ -48,16 +54,15 @@ export async function POST(request: NextRequest) {
               const [step, content] = Object.entries(chunk as any)[0];
 
               console.log("Agent update - step:", step);
-              console.log("Update content:", JSON.stringify(content, null, 2));
 
               if (step === "tools" && content.messages) {
                 // Tool execution result
                 const toolMessage = content.messages[0];
-                console.log("Tool executed - message:", toolMessage);
                 event = {
                   type: "tool_result",
                   content: toolMessage?.content || toolMessage?.kwargs?.content,
-                  toolName: toolMessage?.name || toolMessage?.kwargs?.name || "unknown",
+                  toolName:
+                    toolMessage?.name || toolMessage?.kwargs?.name || "unknown",
                 };
               }
             } else if (streamMode === "custom") {

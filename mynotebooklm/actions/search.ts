@@ -10,7 +10,7 @@ export interface SearchResult {
   similarity: number;
 }
 
-export async function semanticSearch(
+export async function search(
   query: string,
   topK: number = 5,
   minSimilarity: number = 0.7,
@@ -20,7 +20,7 @@ export async function semanticSearch(
 
     const queryVector = await embeddingsModel.embedQuery(query);
 
-    const vectorString = `[${queryVector.join(',')}]`;
+    const vectorString = `[${queryVector.join(",")}]`;
 
     const results = await db
       .select({
@@ -31,9 +31,7 @@ export async function semanticSearch(
       })
       .from(embeddings)
       .innerJoin(files, eq(embeddings.file_id, files.id))
-      .orderBy(
-        sql`${embeddings.embedding} <=> ${vectorString}::vector`,
-      )
+      .orderBy(sql`${embeddings.embedding} <=> ${vectorString}::vector`)
       .limit(topK);
 
     return results

@@ -2,11 +2,11 @@ import { createAgent } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import {
-  semanticSearchTool,
-  summaryTool,
-  queryRewriteTool,
-  saveMemoryTool,
-  getMemoryTool,
+  semanticSearch,
+  summarize,
+  queryRewrite,
+  saveMemory,
+  getMemory,
 } from "./tools";
 import { AGENT_SYSTEM_PROMPT } from "./prompts";
 
@@ -26,20 +26,21 @@ export default async function getAgent() {
   const checkpointer = await getCheckpointer();
 
   const model = new ChatOpenAI({
-    configuration: {
-      baseURL: "http://localhost:1234/v1",
-      apiKey: "lmstudio",
-    },
+    model: "gpt-4o-mini",
+    // configuration: {
+    //   baseURL: "http://localhost:1234/v1",
+    //   apiKey: "lmstudio",
+    // },
     temperature: 0.5,
     streaming: true,
   });
 
   const tools = [
-    saveMemoryTool,
-    getMemoryTool,
-    queryRewriteTool,
-    summaryTool,
-    semanticSearchTool,
+    semanticSearch,
+    summarize,
+    queryRewrite,
+    saveMemory,
+    getMemory,
   ];
 
   console.log("Creating agent with", tools.length, "tools");

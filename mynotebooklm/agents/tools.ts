@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { tool } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
-import { semanticSearch } from "@/actions/semanticSearch";
+import { search } from "@/actions/search";
 import { memory } from "./memory";
 import {
   SAVE_MEMORY_TOOL_DESCRIPTION,
@@ -14,17 +14,19 @@ import {
 } from "./prompts";
 
 const model = new ChatOpenAI({
-  configuration: {
-    baseURL: "http://localhost:1234/v1",
-    apiKey: "lmstudio",
-  },
+  model: "gpt-4o-mini",
+  // configuration: {
+  //   baseURL: "http://localhost:1234/v1",
+  //   apiKey: "lmstudio",
+  // },
   temperature: 0.5,
 });
 
-export const saveMemoryTool = tool(
+export const saveMemory = tool(
   async ({ memories }) => {
-    console.log("Calling saveMemoryTool...");
+    console.log("Calling saveMemory...");
     await memory.add(memories, { userId: "user123" });
+    return "Memory saved successfully";
   },
   {
     name: "save_memory",
@@ -35,11 +37,11 @@ export const saveMemoryTool = tool(
   },
 );
 
-export const getMemoryTool = tool(
+export const getMemory = tool(
   async ({ query }) => {
-    console.log("Calling getMemoryTool...");
+    console.log("Calling getMemory...");
     const results = await memory.search(query, { userId: "user123" });
-    return results;
+    return JSON.stringify(results);
   },
   {
     name: "get_memory",
@@ -50,9 +52,9 @@ export const getMemoryTool = tool(
   },
 );
 
-export const queryRewriteTool = tool(
+export const queryRewrite = tool(
   async ({ query }) => {
-    console.log("Calling queryRewriteTool...");
+    console.log("Calling queryRewrite...");
     const result = await model.invoke([
       { role: "system", content: QUERY_REWRITE_TOOL_PROMPT },
       { role: "user", content: query },
@@ -68,9 +70,9 @@ export const queryRewriteTool = tool(
   },
 );
 
-export const summaryTool = tool(
+export const summarize = tool(
   async ({ content }) => {
-    console.log("Calling summarizeTool...");
+    console.log("Calling summarize...");
     const result = await model.invoke([
       { role: "system", content: SUMMARY_TOOL_PROMPT },
       { role: "user", content: content },
@@ -86,10 +88,14 @@ export const summaryTool = tool(
   },
 );
 
-export const semanticSearchTool = tool(
+export const semanticSearch = tool(
   async ({ query, k = 5, min_similarity = 0.7 }) => {
-    console.log("Calling semanticSearchTool with:", { query, k, min_similarity });
-    const result = await semanticSearch(query, k, min_similarity);
+    console.log("Calling semanticSearch with:", {
+      query,
+      k,
+      min_similarity,
+    });
+    const result = await search(query, k, min_similarity);
     console.log("Search results:", result);
     return JSON.stringify(result);
   },
@@ -98,7 +104,11 @@ export const semanticSearchTool = tool(
     description: SEMANTIC_SEARCH_TOOL_DESCRIPTION,
     schema: z.object({
       query: z.string().describe("The search query to find relevant documents"),
-      k: z.number().optional().default(5).describe("Number of results to return (default: 5)"),
+      k: z
+        .number()
+        .optional()
+        .default(5)
+        .describe("Number of results to return (default: 5)"),
       min_similarity: z
         .number()
         .optional()
