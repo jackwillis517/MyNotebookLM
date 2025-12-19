@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
               }
             } else if (streamMode === "updates") {
               // Agent step updates (tool calls, etc.)
-              const [step, content] = Object.entries(chunk as any)[0];
+              const [step, content] = Object.entries(chunk as any)[0] as [
+                string,
+                any,
+              ];
 
               console.log("Agent update - step:", step);
 

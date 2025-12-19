@@ -1,36 +1,40 @@
 "use client";
 
-import { Headphones, FileQuestion, CreditCard, Sparkles } from "lucide-react";
+import { FileQuestion, CreditCard, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useChatContext } from "@/contexts/ChatProvider";
+import createQuiz from "../actions/quiz";
 
-const RightPanel = () => {
+export default function RightPanel() {
   const { selectedThreadId } = useChatContext();
 
   const generationTools = [
     {
       id: 1,
-      name: "Audio Overview",
-      icon: Headphones,
-      description: "Generate a podcast-style audio summary",
-    },
-    {
-      id: 2,
       name: "Quiz",
       icon: FileQuestion,
+      onclick: async () => {
+        await createQuiz(selectedThreadId!);
+      },
       description: "Create quiz questions from your documents",
     },
     {
-      id: 3,
+      id: 2,
       name: "Flashcards",
       icon: CreditCard,
+      onclick: async () => {
+        console.log("Flashcards clicked");
+      },
       description: "Generate study flashcards",
     },
     {
-      id: 4,
-      name: "Summary",
-      icon: Sparkles,
+      id: 3,
+      name: "Report",
+      icon: File,
+      onclick: async () => {
+        console.log("Report clicked");
+      },
       description: "Create a concise text summary",
     },
   ];
@@ -46,6 +50,7 @@ const RightPanel = () => {
             <Button
               key={tool.id}
               variant="outline"
+              onClick={tool.onclick}
               className="w-full justify-start h-auto p-4 border-border hover:bg-secondary/50 hover:border-primary/50 transition-all"
             >
               <div className="flex items-start gap-3 text-left">
@@ -74,6 +79,4 @@ const RightPanel = () => {
       </div>
     </div>
   );
-};
-
-export default RightPanel;
+}

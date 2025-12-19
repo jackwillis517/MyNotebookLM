@@ -3,12 +3,7 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "@/db";
 import { embeddings, files } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-
-export interface SearchResult {
-  file_id: string;
-  metadata?: any;
-  similarity: number;
-}
+import { SearchResult } from "@/lib/types";
 
 export async function search(
   query: string,

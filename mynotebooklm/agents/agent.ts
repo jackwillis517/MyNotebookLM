@@ -8,6 +8,7 @@ import {
   saveMemory,
   getMemory,
 } from "./tools";
+import { callQuizAgent } from "./subagents";
 import { AGENT_SYSTEM_PROMPT } from "./prompts";
 
 let checkpointerInstance: PostgresSaver | null = null;
@@ -27,10 +28,6 @@ export default async function getAgent() {
 
   const model = new ChatOpenAI({
     model: "gpt-4o-mini",
-    // configuration: {
-    //   baseURL: "http://localhost:1234/v1",
-    //   apiKey: "lmstudio",
-    // },
     temperature: 0.5,
     streaming: true,
   });
@@ -41,6 +38,7 @@ export default async function getAgent() {
     queryRewrite,
     saveMemory,
     getMemory,
+    callQuizAgent,
   ];
 
   console.log("Creating agent with", tools.length, "tools");

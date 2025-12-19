@@ -19,7 +19,7 @@ export default function CenterPanel() {
   const [chatList, setChatList] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat>();
   const [messageList, setMessageList] = useState<Message[]>([]);
-  const [customUpdates, setCustomUpdates] = useState<string[]>([]);
+  // const [customUpdates, setCustomUpdates] = useState<string[]>([]);
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [threadsOpen, setThreadsOpen] = useState<boolean>(false);
@@ -53,7 +53,7 @@ export default function CenterPanel() {
     setMessageList((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-    setCustomUpdates([]);
+    // setCustomUpdates([]);
 
     // Create user message in db
     await createMessage(selectedThreadId!, userMessage);
@@ -107,16 +107,17 @@ export default function CenterPanel() {
                     assistantContent;
                   return newMessages;
                 });
-              } else if (event.type === "tool_result") {
-                // Show tool execution
-                setCustomUpdates((prev) => [
-                  ...prev,
-                  `🛠️ ${event.toolName}: ${event.content}`,
-                ]);
-              } else if (event.type === "custom") {
-                // Show custom updates from config.writer
-                setCustomUpdates((prev) => [...prev, event.content]);
               }
+              // else if (event.type === "tool_result") {
+              //   // Show tool execution
+              //   setCustomUpdates((prev) => [
+              //     ...prev,
+              //     `🛠️ ${event.toolName}: ${event.content}`,
+              //   ]);
+              // } else if (event.type === "custom") {
+              //   // Show custom updates from config.writer
+              //   setCustomUpdates((prev) => [...prev, event.content]);
+              // }
             } catch (e) {
               // Ignore parse errors for incomplete chunks
               console.error("Parse error:", e);
@@ -141,7 +142,7 @@ export default function CenterPanel() {
       await updateChat(selectedChat!);
 
       setIsLoading(false);
-      setCustomUpdates([]);
+      // setCustomUpdates([]);
     }
   };
 
