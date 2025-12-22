@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { useChatContext } from "@/contexts/ChatProvider";
 import Quiz from "./Quiz";
-import Flashcards from "./Flashcards";
+import Flashcard from "./Flashcards";
 import createQuiz from "../actions/quiz";
+import createFlashcards from "../actions/flashcard";
 
 export default function RightPanel() {
   const { selectedThreadId } = useChatContext();
@@ -78,7 +79,11 @@ export default function RightPanel() {
       name: "Flashcards",
       icon: CreditCard,
       onclick: async () => {
-        console.log("Flashcards clicked");
+        setIsGenerating(2);
+        const flashcardQuestions = await createFlashcards(selectedThreadId!);
+        console.log(flashcardQuestions);
+        setFlashcards(flashcardQuestions.flashcards);
+        setIsGenerating(0);
       },
       description: "Generate study flashcards",
     },
@@ -134,9 +139,13 @@ export default function RightPanel() {
         <h3 className="text-sm font-semibold text-foreground mb-3">Results</h3>
         <Card className="p-4 bg-secondary/30 border-border h-full">
           <div className="text-sm text-muted-foreground text-center">
-            {quiz != null ? <Quiz quizData={quiz} /> : <></>}
-            {/*<Quiz quizData={exampleQuiz} />*/}
-            {/*<Flashcards flashcardData={exampleFlashcards} />*/}
+            {quiz != null ? (
+              <Quiz quizData={quiz} />
+            ) : flashcards != null ? (
+              <Flashcard flashcardData={flashcards} />
+            ) : (
+              <></>
+            )}
           </div>
         </Card>
       </div>

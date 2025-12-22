@@ -6,7 +6,7 @@ import {
   FLASHCARD_AGENT_SYSTEM_PROMPT,
   REPORT_AGENT_SYSTEM_PROMPT,
 } from "./prompts";
-import { validateQuiz } from "./validators";
+import { validateQuiz, validateFlashcard } from "./validators";
 
 // const model = new ChatOpenAI({
 //   configuration: {
@@ -52,11 +52,12 @@ export const callQuizAgent = tool(
 export const callFlashcardAgent = tool(
   async ({ content }) => {
     console.log("Calling callFlashcardAgent");
-    return "Flashcard agent called";
+    const result = await generateFlashcard(content);
+    return result;
   },
   {
     name: "call_flashcard_agent",
-    description: "Call the flashcard agent",
+    description: "Flashcard subagent used to generate flashcards",
     schema: z.object({ content: z.string() }),
   },
 );
@@ -162,5 +163,106 @@ const generateQuiz = async (content: string): Promise<string | undefined> => {
     success: false,
     message: `Failed to generate valid quiz after ${maxAttempts} attempts. ${lastError || "Unknown error"}`,
     quiz: undefined,
+  });
+};
+
+const generateFlashcard = async (
+  content: string,
+): Promise<string | undefined> => {
+  const maxAttempts = 3;
+  let lastError: string | undefined;
+  let lastValidationErrors: string[] = [];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`📇 Flashcard generation attempt ${attempt}/${maxAttempts}`);
+
+    try {
+      // Invoke flashcard agent
+      const result = await flashcardAgent.invoke({
+        messages: [{ role: "user", content: content }],
+      });
+
+      // Extract the last message content
+      const lastMessage = result.messages[result.messages.length - 1];
+      const flashcardContent = lastMessage.content as string;
+
+      console.log(
+        `📄 Raw flashcard response (attempt ${attempt}):`,
+        flashcardContent,
+      );
+
+      // Clean up markdown if present
+      const cleanedContent = flashcardContent
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+
+      // Parse JSON
+      let parsedFlashcard: unknown;
+      try {
+        parsedFlashcard = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        lastError = `Failed to parse JSON on attempt ${attempt}`;
+        console.error(`❌ ${lastError}:`, parseError);
+
+        // Add feedback for next attempt
+        if (attempt < maxAttempts) {
+          content = `${content}\n\nPrevious attempt failed: Invalid JSON format. Please ensure you output ONLY valid JSON with no markdown or extra text.`;
+        }
+        continue;
+      }
+
+      // Validate with Zod
+      const validation = validateFlashcard(parsedFlashcard);
+
+      if (validation.success) {
+        console.log(
+          `✅ Flashcard validated successfully on attempt ${attempt}`,
+        );
+
+        // Return formatted success message
+        const cardCount = Object.keys(validation.data!).length;
+        return JSON.stringify({
+          success: true,
+          message: `Successfully generated ${cardCount} flashcards.`,
+          flashcards: validation.data,
+        });
+      } else {
+        lastValidationErrors = validation.errors || [];
+        lastError = `Validation failed on attempt ${attempt}`;
+        console.error(`❌ ${lastError}:`, lastValidationErrors);
+
+        // Add detailed feedback for next attempt
+        if (attempt < maxAttempts) {
+          const errorDetails = lastValidationErrors.join(", ");
+          content = `${content}\n\nPrevious attempt had validation errors: ${errorDetails}. Please fix these issues and regenerate the flashcards.`;
+        }
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown error";
+      console.error(`❌ Attempt ${attempt} failed:`, error);
+
+      if (attempt < maxAttempts) {
+        content = `${content}\n\nPrevious attempt failed with error: ${lastError}. Please try again.`;
+      }
+    }
+
+    // Wait before retry (exponential backoff)
+    if (attempt < maxAttempts) {
+      const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s
+      console.log(`⏳ Waiting ${delay}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // All attempts failed
+  console.error(
+    `❌ Flashcard generation failed after ${maxAttempts} attempts`,
+  );
+
+  return JSON.stringify({
+    success: false,
+    message: `Failed to generate valid flashcards after ${maxAttempts} attempts. ${lastError || "Unknown error"}`,
+    flashcards: undefined,
   });
 };

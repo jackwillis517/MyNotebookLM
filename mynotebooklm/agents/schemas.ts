@@ -46,3 +46,41 @@ export const QuizSchema = z
 
 export type Quiz = z.infer<typeof QuizSchema>;
 export type QuizItem = z.infer<typeof QuizItemSchema>;
+
+export const FlashcardItemSchema = z.object({
+  question: z
+    .string()
+    .min(5, "Question must be at least 5 characters")
+    .max(500, "Question must be less than 500 characters"),
+  answer: z
+    .string()
+    .min(1, "Answer must be at least 1 character")
+    .max(1000, "Answer must be less than 1000 characters"),
+});
+
+export const FlashcardSchema = z
+  .record(
+    z
+      .string()
+      .regex(/^\d+$/, 'Key must be a numeric string like "1", "2", "3"'),
+    FlashcardItemSchema,
+  )
+  .refine(
+    (flashcards) => Object.keys(flashcards).length >= 1,
+    "Flashcard set must have at least 1 card",
+  )
+  .refine((flashcards) => {
+    // Ensure keys are sequential starting from 1
+    const keys = Object.keys(flashcards)
+      .map(Number)
+      .sort((a, b) => a - b);
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] !== i + 1) {
+        return false;
+      }
+    }
+    return true;
+  }, "Flashcard numbers must be sequential starting from 1");
+
+export type Flashcard = z.infer<typeof FlashcardSchema>;
+export type FlashcardItem = z.infer<typeof FlashcardItemSchema>;

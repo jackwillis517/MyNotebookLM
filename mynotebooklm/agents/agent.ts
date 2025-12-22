@@ -8,7 +8,7 @@ import {
   saveMemory,
   getMemory,
 } from "./tools";
-import { callQuizAgent } from "./subagents";
+import { callQuizAgent, callFlashcardAgent } from "./subagents";
 import { AGENT_SYSTEM_PROMPT } from "./prompts";
 
 let checkpointerInstance: PostgresSaver | null = null;
@@ -39,6 +39,7 @@ export default async function getAgent() {
     saveMemory,
     getMemory,
     callQuizAgent,
+    callFlashcardAgent,
   ];
 
   console.log("Creating agent with", tools.length, "tools");
