@@ -65,11 +65,13 @@ export const callFlashcardAgent = tool(
 export const callReportAgent = tool(
   async ({ content }) => {
     console.log("Calling callReportAgent");
-    return "Report agent called";
+    const result = await generateReport(content);
+    return result;
   },
   {
     name: "call_report_agent",
-    description: "Call the report agent",
+    description:
+      "Report subagent used to generate formal executive reports from document content",
     schema: z.object({ content: z.string() }),
   },
 );
@@ -256,13 +258,54 @@ const generateFlashcard = async (
   }
 
   // All attempts failed
-  console.error(
-    `❌ Flashcard generation failed after ${maxAttempts} attempts`,
-  );
+  console.error(`❌ Flashcard generation failed after ${maxAttempts} attempts`);
 
   return JSON.stringify({
     success: false,
     message: `Failed to generate valid flashcards after ${maxAttempts} attempts. ${lastError || "Unknown error"}`,
     flashcards: undefined,
   });
+};
+
+const generateReport = async (content: string): Promise<string | undefined> => {
+  const maxAttempts = 3;
+  let lastError: string | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`📊 Report generation attempt ${attempt}/${maxAttempts}`);
+
+    try {
+      // Invoke report agent
+      const result = await reportAgent.invoke({
+        messages: [{ role: "user", content: content }],
+      });
+
+      // Extract the last message content
+      const lastMessage = result.messages[result.messages.length - 1];
+      const reportContent = lastMessage.content as string;
+
+      console.log(`📄 Report generated successfully on attempt ${attempt}`);
+
+      return reportContent;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown error";
+      console.error(`❌ Attempt ${attempt} failed:`, error);
+
+      if (attempt < maxAttempts) {
+        content = `${content}\n\nPrevious attempt failed with error: ${lastError}. Please try again and generate a formal executive report.`;
+      }
+    }
+
+    // Wait before retry (exponential backoff)
+    if (attempt < maxAttempts) {
+      const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s
+      console.log(`⏳ Waiting ${delay}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // All attempts failed
+  console.error(`❌ Report generation failed after ${maxAttempts} attempts`);
+
+  return `## Report Generation Failed\n\nUnable to generate executive report after ${maxAttempts} attempts.\n\n**Error:** ${lastError || "Unknown error"}\n\nPlease try again or contact support if the issue persists.`;
 };

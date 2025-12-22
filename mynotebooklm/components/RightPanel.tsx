@@ -1,63 +1,23 @@
 "use client";
 
-import { FileQuestion, CreditCard, File, LoaderCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { useChatContext } from "@/contexts/ChatProvider";
 import Quiz from "./Quiz";
 import Flashcard from "./Flashcards";
+import PdfDownloadButton from "./PdfDownloadButton";
 import createQuiz from "../actions/quiz";
 import createFlashcards from "../actions/flashcard";
+import createReport from "../actions/report";
+import { FileQuestion, CreditCard, File, LoaderCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function RightPanel() {
   const { selectedThreadId } = useChatContext();
   const [isGenerating, setIsGenerating] = useState(0);
   const [quiz, setQuiz] = useState(null);
   const [flashcards, setFlashcards] = useState(null);
-  const [report, setReport] = useState(null);
-
-  const exampleQuiz = {
-    "1": {
-      question: "What is the capital of France?",
-      answers: ["Paris", "Berlin", "Washington D.C", "Moscow"],
-      answer: 0,
-    },
-    "2": {
-      question: "What is the capital of Germany?",
-      answers: ["Paris", "Berlin", "Washington D.C", "Moscow"],
-      answer: 1,
-    },
-    "3": {
-      question: "What is the capital of the United States?",
-      answers: ["Berlin", "Paris", "Washington D.C", "Moscow"],
-      answer: 2,
-    },
-    "4": {
-      question: "What is the capital of Russia?",
-      answers: ["Berlin", "Paris", "Washington D.C", "Moscow"],
-      answer: 3,
-    },
-  };
-
-  const exampleFlashcards = {
-    "1": {
-      question: "What is the capital of France?",
-      answer: "Paris",
-    },
-    "2": {
-      question: "What is the capital of Germany?",
-      answer: "Berlin",
-    },
-    "3": {
-      question: "What is the capital of the United States?",
-      answer: "Washington D.C",
-    },
-    "4": {
-      question: "What is the capital of Russia?",
-      answer: "Moscow",
-    },
-  };
+  const [report, setReport] = useState("");
 
   const generationTools = [
     {
@@ -68,6 +28,8 @@ export default function RightPanel() {
         if (isGenerating === 0) {
           setIsGenerating(1);
           const quizQuestions = await createQuiz(selectedThreadId!);
+          setFlashcards(null);
+          setReport("");
           setQuiz(quizQuestions.quiz);
           setIsGenerating(0);
         }
@@ -79,11 +41,14 @@ export default function RightPanel() {
       name: "Flashcards",
       icon: CreditCard,
       onclick: async () => {
-        setIsGenerating(2);
-        const flashcardQuestions = await createFlashcards(selectedThreadId!);
-        console.log(flashcardQuestions);
-        setFlashcards(flashcardQuestions.flashcards);
-        setIsGenerating(0);
+        if (isGenerating === 0) {
+          setIsGenerating(2);
+          const flashcardQuestions = await createFlashcards(selectedThreadId!);
+          setQuiz(null);
+          setReport("");
+          setFlashcards(flashcardQuestions.flashcards);
+          setIsGenerating(0);
+        }
       },
       description: "Generate study flashcards",
     },
@@ -92,9 +57,16 @@ export default function RightPanel() {
       name: "Report",
       icon: File,
       onclick: async () => {
-        console.log("Report clicked");
+        if (isGenerating === 0) {
+          setIsGenerating(3);
+          const reportContent = await createReport(selectedThreadId!);
+          setQuiz(null);
+          setFlashcards(null);
+          setReport(reportContent);
+          setIsGenerating(0);
+        }
       },
-      description: "Create a concise text summary",
+      description: "Create a downloadable summary",
     },
   ];
 
@@ -143,6 +115,18 @@ export default function RightPanel() {
               <Quiz quizData={quiz} />
             ) : flashcards != null ? (
               <Flashcard flashcardData={flashcards} />
+            ) : report != "" ? (
+              <div className="space-y-4">
+                <div className="text-left">
+                  <p className="text-sm text-foreground mb-2">
+                    Executive report generated successfully!
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Click the button below to download your report as a PDF.
+                  </p>
+                </div>
+                <PdfDownloadButton reportContent={report} />
+              </div>
             ) : (
               <></>
             )}
