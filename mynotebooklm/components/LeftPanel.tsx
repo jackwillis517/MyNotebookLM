@@ -126,7 +126,7 @@ export default function LeftPanel() {
               ) : (
                 <Upload className="w-4 h-4 mr-2" />
               )}
-              {uploading ? "Uploading..." : "Upload Document"}
+              {uploading ? "Uploading..." : "Upload"}
             </label>
           </Button>
         </form>

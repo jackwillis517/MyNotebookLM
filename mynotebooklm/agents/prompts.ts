@@ -109,11 +109,13 @@ Respond with ONLY this JSON structure (no markdown, no explanation):
 {
   "1": {
     "question": "Your question here?",
-    "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
+    "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"],
+    "answer": 1
   },
   "2": {
     "question": "Your question here?",
-    "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
+    "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"],
+    "answer": 2
   }
 }
 
@@ -124,6 +126,7 @@ Respond with ONLY this JSON structure (no markdown, no explanation):
 3. Each question needs:
    - A clear question string ending with ?
    - Exactly 4 answers in an array
+   - An "answer" field with the index (0-3) of the correct answer
 4. Exactly ONE answer must be correct, THREE must be wrong
 5. Put the correct answer in a random position (not always first or last)
 6. Wrong answers must seem reasonable but be factually incorrect
@@ -145,11 +148,13 @@ Wrong answers should:
 {
   "1": {
     "question": "What is the capital of France?",
-    "answers": ["London", "Paris", "Berlin", "Madrid"]
+    "answers": ["London", "Paris", "Berlin", "Madrid"],
+    "answer": 1
   },
   "2": {
     "question": "What is 2 + 2?",
-    "answers": ["3", "5", "4", "6"]
+    "answers": ["3", "5", "4", "6"],
+    "answer": 2
   }
 }
 
@@ -168,7 +173,8 @@ Don't ask trick questions
 4. Write one correct answer
 5. Write three believable wrong answers
 6. Randomize which position the correct answer is in
-7. Format as JSON only
+7. Set the "answer" field to the index (0-3) of the correct answer
+8. Format as JSON only
 
 Start generating now.
 `.trim();

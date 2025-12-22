@@ -13,6 +13,11 @@ export const QuizItemSchema = z.object({
       (answers) => new Set(answers).size === 4,
       "All answers must be unique",
     ),
+  answer: z
+    .number()
+    .int()
+    .min(0, "Answer index must be at least 0")
+    .max(3, "Answer index must be at most 3"),
 });
 
 export const QuizSchema = z
