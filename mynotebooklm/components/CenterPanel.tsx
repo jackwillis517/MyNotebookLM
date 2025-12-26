@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   readAllChats,
@@ -9,7 +9,7 @@ import {
   createMessage,
 } from "@/actions/db";
 import { Chat, Message } from "@/lib/types";
-import { Send, Mic, Menu } from "lucide-react";
+import { Send, Mic, Menu, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useChatContext } from "@/contexts/ChatProvider";
@@ -19,10 +19,14 @@ export default function CenterPanel() {
   const [chatList, setChatList] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat>();
   const [messageList, setMessageList] = useState<Message[]>([]);
-  // const [customUpdates, setCustomUpdates] = useState<string[]>([]);
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [threadsOpen, setThreadsOpen] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Get all the chats
   useEffect(() => {
@@ -43,6 +47,92 @@ export default function CenterPanel() {
     };
     fetchChats();
   }, [setSelectedThreadId]);
+
+  const startRecording = async () => {
+    try {
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm", // Most browsers support this
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      // Collect audio data
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      // When recording stops
+      mediaRecorder.onstop = async () => {
+        // Create audio blob from chunks
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach((track) => track.stop());
+
+        // Send to transcription
+        await transcribeAudio(audioBlob);
+      };
+
+      // Start recording
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Could not access microphone. Please grant permission.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsProcessing(true);
+
+    try {
+      // Create FormData to send file
+      const formData = new FormData();
+      formData.append("file", audioBlob, "recording.webm");
+
+      // Call transcription API
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Transcription failed");
+      }
+
+      const data = await response.json();
+      setInput(data.text);
+    } catch (error) {
+      console.error("Transcription error:", error);
+      alert("Failed to transcribe audio. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleTranscription = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,8 +338,17 @@ export default function CenterPanel() {
                 variant="ghost"
                 size="icon"
                 className="hover:bg-secondary"
+                onClick={handleTranscription}
               >
-                <Mic className="h-5 w-5" />
+                {!isProcessing ? (
+                  isRecording ? (
+                    <Mic className="h-5 w-5 text-red-500" />
+                  ) : (
+                    <Mic className="h-5 w-5" />
+                  )
+                ) : (
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
+                )}
               </Button>
 
               <Button size="icon" disabled={isLoading || !input.trim()}>

@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { tool } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
-import { search } from "@/actions/search";
+import { semanticSearch as semanticSearchAction } from "@/actions/search";
 import { memory } from "./memory";
 import {
   SAVE_MEMORY_TOOL_DESCRIPTION,
@@ -95,7 +95,7 @@ export const semanticSearch = tool(
       k,
       min_similarity,
     });
-    const result = await search(query, k, min_similarity);
+    const result = await semanticSearchAction(query, k, min_similarity);
     console.log("Search results:", result);
     return JSON.stringify(result);
   },

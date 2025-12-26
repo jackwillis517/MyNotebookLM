@@ -1,9 +1,9 @@
 "use server";
 import getAgent from "@/agents/agent";
-import { search } from "./search";
+import { semanticSearch } from "./search";
 
 export default async function createQuiz(threadId: string) {
-  const results = await search(
+  const results = await semanticSearch(
     "main topics, key concepts, important facts, definitions, core ideas",
     15,
   );

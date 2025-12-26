@@ -14,7 +14,6 @@ import { useChatContext } from "@/contexts/ChatProvider";
 export default function LeftPanel() {
   const { selectedThreadId } = useChatContext();
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
   const [fileList, setFileList] = useState<(typeof files.$inferSelect)[]>([]);
   const [refresh, setRefresh] = useState(0);
 
@@ -45,32 +44,20 @@ export default function LeftPanel() {
     formData.append("thread_id", selectedThreadId);
 
     setUploading(true);
-    setMessage("Uploading...");
 
     const result = await upload(formData);
 
     if (result.success) {
-      setMessage(`Embedding ${result.title}...`);
-
       const embeddingFormData = new FormData();
       const filepath = "./uploads/" + uploadedFile.name;
       embeddingFormData.append("filepath", filepath);
       embeddingFormData.append("file_id", result.file_id!);
       embeddingFormData.append("type", result.type!);
 
-      const embeddingResult = await embed(embeddingFormData);
-
-      if (embeddingResult.success) {
-        setMessage(`Uploaded ${result.title} successfully`);
-      } else {
-        console.log(embeddingResult.error);
-        setMessage(`✗ Error: ${embeddingResult.error}`);
-      }
-
+      await embed(embeddingFormData);
       form.reset();
     } else {
       console.log(result.error);
-      setMessage(`✗ Error: ${result.error}`);
     }
 
     setRefresh((prev) => prev + 1);

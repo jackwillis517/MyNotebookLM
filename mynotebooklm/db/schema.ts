@@ -5,7 +5,20 @@ import {
   jsonb,
   timestamp,
   uuid,
+  customType,
 } from "drizzle-orm/pg-core";
+
+const tsvector = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return "tsvector";
+  },
+  toDriver(value: string): string {
+    return value;
+  },
+  fromDriver(value: string): string {
+    return value;
+  },
+});
 
 export const chats = pgTable("chats", {
   thread_id: uuid("thread_id").primaryKey().defaultRandom(),
@@ -45,6 +58,7 @@ export const embeddings = pgTable("embeddings", {
   }),
   content: text("content").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }),
+  tsVector: tsvector("ts_vector"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

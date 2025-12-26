@@ -16,3 +16,10 @@ export interface SearchResult {
   metadata?: any;
   similarity: number;
 }
+
+export interface HybridResult {
+  file_id: string;
+  content: string;
+  metadata?: any;
+  fusedScore: number;
+}
