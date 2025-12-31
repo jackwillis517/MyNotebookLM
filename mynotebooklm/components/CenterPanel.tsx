@@ -9,9 +9,10 @@ import {
   createMessage,
 } from "@/actions/db";
 import { Chat, Message } from "@/lib/types";
-import { Send, Mic, Menu, LoaderCircle } from "lucide-react";
+import { Send, Mic, Menu, LoaderCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useChatContext } from "@/contexts/ChatProvider";
 
 export default function CenterPanel() {
@@ -24,9 +25,11 @@ export default function CenterPanel() {
   const [threadsOpen, setThreadsOpen] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchType, setSearchType] = useState<"semantic" | "hybrid">("hybrid");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Get all the chats
   useEffect(() => {
@@ -47,6 +50,11 @@ export default function CenterPanel() {
     };
     fetchChats();
   }, [setSelectedThreadId]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messageList]);
 
   const startRecording = async () => {
     try {
@@ -159,6 +167,7 @@ export default function CenterPanel() {
         body: JSON.stringify({
           messages: [...messageList, userMessage],
           threadId: selectedThreadId,
+          searchType: searchType,
         }),
       });
 
@@ -248,7 +257,7 @@ export default function CenterPanel() {
   };
 
   return (
-    <div className="h-full flex bg-panel-background rounded-lg border border-panel-border overflow-hidden">
+    <div className="h-full max-h-full flex bg-panel-background rounded-lg border border-panel-border overflow-hidden">
       {/* Chats Sidebar */}
       <div
         className={cn(
@@ -276,23 +285,59 @@ export default function CenterPanel() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-panel-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setThreadsOpen(!threadsOpen)}
-            className="h-8 w-8 p-0"
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-          <h2 className="text-lg font-semibold text-foreground">
-            {selectedChat?.title}
-          </h2>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between gap-2 p-4 border-b border-panel-border flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setThreadsOpen(!threadsOpen)}
+              className="h-8 w-8 p-0"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+            <h2 className="text-lg font-semibold text-foreground">
+              {selectedChat?.title}
+            </h2>
+          </div>
+
+          {/* Search Type Toggle */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-secondary/50 rounded-md p-1">
+              <Button
+                variant={searchType === "semantic" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSearchType("semantic")}
+                className="h-7 px-3 text-xs"
+              >
+                Semantic
+              </Button>
+              <Button
+                variant={searchType === "hybrid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSearchType("hybrid")}
+                className="h-7 px-3 text-xs"
+              >
+                Hybrid
+              </Button>
+            </div>
+            <Tooltip
+              content="Semantic search uses vector embeddings to find contextually similar content. Hybrid search combines vector similarity with keyword matching for more precise results."
+              side="bottom"
+            >
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </Tooltip>
+          </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div
+          className="flex-1 overflow-y-scroll p-6 space-y-4 h-0"
+          style={{
+            scrollbarWidth: "thin",
+            scrollbarColor: "black",
+          }}
+        >
           {messageList.map((message, index) => (
             <div
               key={`${new Date().getTime()}-${index}`}
@@ -318,17 +363,17 @@ export default function CenterPanel() {
               <Loader2 className="animate-spin" />
             </div>
           ) : null}*/}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-panel-border">
+        <div className="p-4 border-t border-panel-border flex-shrink-0">
           <div className="flex gap-2">
             <form onSubmit={handleSubmit} className="flex gap-2 w-full">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSubmit}
                 placeholder="Ask me anything..."
                 className="flex-1 pl-5 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 disabled={isLoading}

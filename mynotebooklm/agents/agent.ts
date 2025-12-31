@@ -2,7 +2,7 @@ import { createAgent } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import {
-  semanticSearch,
+  search,
   summarize,
   queryRewrite,
   saveMemory,
@@ -37,7 +37,7 @@ export default async function getAgent() {
   });
 
   const tools = [
-    semanticSearch,
+    search,
     summarize,
     queryRewrite,
     saveMemory,

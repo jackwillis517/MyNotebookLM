@@ -33,6 +33,7 @@ export default function ChatInterface() {
         body: JSON.stringify({
           messages: [...messages, userMessage],
           threadId: threadId,
+          searchType: "semantic",
         }),
       });
 

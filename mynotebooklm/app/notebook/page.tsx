@@ -15,7 +15,7 @@ const Notebook = () => {
             </div>
 
             {/* Center Panel - 1/2 width */}
-            <div className="col-span-3">
+            <div className="col-span-3 h-full">
               <CenterPanel />
             </div>
 

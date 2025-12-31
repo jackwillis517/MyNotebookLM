@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { tool } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
-import { semanticSearch as semanticSearchAction } from "@/actions/search";
+import { semanticSearch, hybridSearch } from "@/actions/search";
 import { memory } from "./memory";
 import {
   SAVE_MEMORY_TOOL_DESCRIPTION,
@@ -10,7 +10,7 @@ import {
   QUERY_REWRITE_TOOL_DESCRIPTION,
   SUMMARY_TOOL_PROMPT,
   SUMMARY_TOOL_DESCRIPTION,
-  SEMANTIC_SEARCH_TOOL_DESCRIPTION,
+  SEARCH_TOOL_DESCRIPTION,
 } from "./prompts";
 
 const model = new ChatOpenAI({
@@ -88,20 +88,45 @@ export const summarize = tool(
   },
 );
 
-export const semanticSearch = tool(
-  async ({ query, k = 5, min_similarity = 0.7 }) => {
-    console.log("Calling semanticSearch with:", {
-      query,
-      k,
-      min_similarity,
-    });
-    const result = await semanticSearchAction(query, k, min_similarity);
-    console.log("Search results:", result);
-    return JSON.stringify(result);
+export const search = tool(
+  async ({ query, k = 5, min_similarity = 0.7 }, config) => {
+    const normalEmbeddings = config.context.isNormalEmbeddings;
+    const lightRagEmbeddings = config.context.isLightRagEmbeddings;
+    const searchType = config.context.searchType;
+
+    // Check if there are uploaded files
+    if (normalEmbeddings || lightRagEmbeddings) {
+      let result = "";
+
+      // If there are files embedded with LightRAG search using LightRAG
+      if (lightRagEmbeddings) {
+        console.log("Call LightRAGSearch");
+        // call light rag search function
+      }
+
+      // If there are files embedded with normal embeddings search using a search function
+      if (normalEmbeddings) {
+        console.log("Calling " + searchType + "Search");
+        if (searchType == "semantic") {
+          result += JSON.stringify(
+            await semanticSearch(query, k, min_similarity),
+          );
+        } else {
+          result += JSON.stringify(
+            await hybridSearch(query, k, min_similarity),
+          );
+        }
+      }
+
+      console.log("Search results:", result);
+      return result;
+    } else {
+      return "No files uploaded.";
+    }
   },
   {
-    name: "semantic_search",
-    description: SEMANTIC_SEARCH_TOOL_DESCRIPTION,
+    name: "search",
+    description: SEARCH_TOOL_DESCRIPTION,
     schema: z.object({
       query: z.string().describe("The search query to find relevant documents"),
       k: z

@@ -6,6 +6,7 @@ import {
   timestamp,
   uuid,
   customType,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 const tsvector = customType<{ data: string; driverData: string }>({
@@ -45,6 +46,7 @@ export const files = pgTable("files", {
   thread_id: uuid("thread_id").references(() => chats.thread_id, {
     onDelete: "cascade",
   }),
+  isLightRag: boolean("is_light_rag").notNull().default(false),
   title: text("title").notNull(),
   size: text("size").notNull(),
   type: text("type").notNull(),

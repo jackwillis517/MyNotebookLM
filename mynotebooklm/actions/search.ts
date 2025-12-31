@@ -46,10 +46,24 @@ export async function semanticSearch(
 export async function hybridSearch(
   query: string,
   limit: number = 5,
+  minSimilarity: number = 0.7,
 ): Promise<SearchResult[]> {
   try {
-    const semanticSearchResult = await semanticSearch(query, limit);
+    const semanticSearchResult = await semanticSearch(
+      query,
+      limit,
+      minSimilarity,
+    );
     const fullTextSearchResult = await fullTextSearch(query, limit);
+
+    // console.log(
+    //   "Number of semantic search results:",
+    //   semanticSearchResult.length,
+    // );
+    // console.log(
+    //   "Number of full-text search results:",
+    //   fullTextSearchResult.length,
+    // );
 
     const results = reciprocalRankFusion(
       semanticSearchResult,
@@ -68,7 +82,7 @@ export async function hybridSearch(
   }
 }
 
-export async function fullTextSearch(
+async function fullTextSearch(
   query: string,
   limit: number = 5,
 ): Promise<SearchResult[]> {

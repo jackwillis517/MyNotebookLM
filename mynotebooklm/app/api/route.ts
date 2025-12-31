@@ -1,11 +1,31 @@
 import { NextRequest } from "next/server";
-import getAgent from "../../agents/agent";
+import getAgent from "@/agents/agent";
+import { InferSelectModel } from "drizzle-orm";
+import { files } from "@/db/schema";
+import { readAllFiles } from "@/actions/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, threadId } = await request.json();
+    const { messages, threadId, searchType } = await request.json();
 
     console.log("Incoming messages:", JSON.stringify(messages, null, 2));
+
+    // Figure out what kind of embedded files are present
+    console.log("Querying files for thread ID: ", threadId);
+    const userFiles: InferSelectModel<typeof files>[] =
+      await readAllFiles(threadId);
+
+    console.log("Number of files found: ", userFiles.length);
+
+    let isLightRagEmbeddings = false;
+    let isNormalEmbeddings = false;
+    for (const file of userFiles) {
+      if (file.isLightRag) {
+        isLightRagEmbeddings = true;
+      } else {
+        isNormalEmbeddings = true;
+      }
+    }
 
     const agent = await getAgent();
 
@@ -21,6 +41,11 @@ export async function POST(request: NextRequest) {
           for await (const [streamMode, chunk] of await agent.stream(
             { messages },
             {
+              context: {
+                isLightRagEmbeddings: isLightRagEmbeddings,
+                isNormalEmbeddings: isNormalEmbeddings,
+                searchType: searchType,
+              },
               streamMode: ["updates", "messages", "custom"],
               configurable: { thread_id: threadId },
             },
